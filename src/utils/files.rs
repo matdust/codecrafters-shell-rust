@@ -22,3 +22,10 @@ pub fn find_exe_in_env(cmd: &str) -> Option<PathBuf> {
 pub fn is_dir_exists(path: &str) -> bool {
     PathBuf::from(&path).is_dir()
 }
+
+pub fn redirect_to_file(path: &str, output: &str) {
+    let file = std::fs::File::create(path).unwrap();
+    let stdio = std::process::Stdio::from(file);
+
+    let command = std::process::Command::new("foo").stdout(stdio);
+}

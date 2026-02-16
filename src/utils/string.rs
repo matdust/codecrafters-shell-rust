@@ -2,6 +2,8 @@ use log::info;
 
 const ESCAPED_CHARS_BY_BACKSLASH_IN_DOUBLE_QUOTES: [char; 5] = ['"', '\\', '$', '`', 'n'];
 
+const REDIRECT_OPERATORS: [&str; 2] = [">", "1>"];
+
 /// Splits [&str] at the first " "
 /// # Returns
 /// Tuple of 2 with optional second value
@@ -9,12 +11,12 @@ const ESCAPED_CHARS_BY_BACKSLASH_IN_DOUBLE_QUOTES: [char; 5] = ['"', '\\', '$', 
 /// # Safety
 /// Input cannot be empty
 pub fn get_cmd_and_args(input: &str) -> (String, Vec<String>) {
-    let v = get_formatted_input(input);
+    let v = get_parsed_input(input);
     info!("After parsed: {:?}", v);
     (v[0].clone(), v[1..].to_vec())
 }
 
-pub fn get_formatted_input(args: &str) -> Vec<String> {
+pub fn get_parsed_input(args: &str) -> Vec<String> {
     let mut r = Vec::new();
     let mut word_to_append = String::new();
 
@@ -74,4 +76,27 @@ pub fn get_formatted_input(args: &str) -> Vec<String> {
     r.push(word_to_append);
 
     r
+}
+
+// pub fn should_redirect<S, I>(args: I)
+// where
+//     I: IntoIterator<Item = S>,
+//     S: AsRef<str>,
+// {
+//     args.into_iter()
+// }
+//
+/// Checks if redirect should happens and returns path if so
+///
+/// # Returns
+/// Returns [Option<String>]
+pub fn get_redirect_path(args: &[&str]) -> Option<String> {
+    let mut iter = args.iter();
+    while let Some(arg) = iter.next() {
+        if REDIRECT_OPERATORS.contains(arg) {
+            return iter.next().map(|x| x.to_string());
+        }
+    }
+
+    None
 }
