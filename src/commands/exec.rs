@@ -7,6 +7,7 @@ where
 {
     let mut command = Command::new(cmd);
     command.args(args);
+
     match command.output() {
         Ok(output) => {
             let stdout = String::from_utf8_lossy(&output.stdout);

@@ -1,5 +1,7 @@
 mod command;
 mod commands;
+mod lexer;
+mod parser;
 mod utils;
 
 use std::{
@@ -9,7 +11,7 @@ use std::{
 
 use log::info;
 
-use crate::command::Command;
+use crate::command::CommandType;
 
 fn main() {
     setup_logger().unwrap();
@@ -35,9 +37,10 @@ fn main() {
 
         info!("Raw input: {}", &input);
 
-        let parsed_cmd = Command::new(&input);
+        let tokens = lexer::tokenize(&input);
+        let ast = parser::build_ast(tokens);
 
-        parsed_cmd.execute();
+        println!("AST: {:#?}", ast.expect("Failed to build AST"));
     }
 }
 

@@ -29,3 +29,14 @@ pub fn redirect_to_file(path: &str, output: &str) {
 
     let command = std::process::Command::new("foo").stdout(stdio);
 }
+
+// pub fn get_redirect_path(args: &[&str]) -> Option<String> {
+//     let mut iter = args.iter();
+//     while let Some(arg) = iter.next() {
+//         if REDIRECT_OPERATORS.contains(arg) {
+//             return iter.next().map(|x| x.to_string());
+//         }
+//     }
+//
+//     None
+// }
