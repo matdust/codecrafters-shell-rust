@@ -1,7 +1,5 @@
-use crate::{
-    command::Command,
-    lexer::{OperatorType, Token},
-};
+use crate::command::Command;
+use crate::lexer::{OperatorType, Token};
 
 #[derive(Debug, PartialEq)]
 pub struct Parser {

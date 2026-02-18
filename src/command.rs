@@ -9,7 +9,7 @@ pub const COMMANDS: [&str; 5] = ["echo", "exit", "type", "pwd", "cd"];
 
 #[derive(Debug, PartialEq)]
 pub struct Command {
-    command_type: CommandType,
+    pub command_type: CommandType,
     stdout: Option<Box<Stdio>>,
     stdin: Option<Box<Stdio>>,
     stderr: Option<Box<Stdio>>,
@@ -80,6 +80,20 @@ impl CommandType {
             }
         }
     }
+
+    pub fn execute(&self) {
+        match self {
+            CommandType::Exit => commands::exit::execute(),
+            CommandType::NotFound { cmd } => commands::notfound::execute(cmd),
+            CommandType::Exec { cmd, args } => {
+                commands::exec::execute(cmd, args.split_whitespace())
+            }
+            CommandType::Type { args } => commands::r#type::execute(args),
+            CommandType::Echo { args } => commands::echo::execute(args),
+            CommandType::Pwd => commands::pwd::execute(),
+            CommandType::Cd { args } => commands::cd::execute(args),
+        }
+    }
 }
 
 // Handle output redirection and input redirection
@@ -118,15 +132,4 @@ pub enum Stdio {
 //         }
 //     }
 //
-//     pub fn execute(&self) {
-//         match self {
-//             CommandType::Exit => commands::exit::execute(),
-//             CommandType::NotFound { cmd } => commands::notfound::execute(cmd),
-//             CommandType::Exec { cmd, args } => commands::exec::execute(cmd, args),
-//             CommandType::Type { args } => commands::r#type::execute(args),
-//             CommandType::Echo { args } => commands::echo::execute(args),
-//             CommandType::Pwd => commands::pwd::execute(),
-//             CommandType::Cd { args } => commands::cd::execute(args),
-//         }
-//     }
 // }

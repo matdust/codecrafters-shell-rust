@@ -106,7 +106,7 @@ pub fn tokenize(args: &str) -> Vec<Token> {
         result.push(Token::Word(command_to_append.trim().into()));
     }
 
-    println!("Tokens: {:?}", result);
+    // println!("Tokens: {:?}", result);
     result
 }
 
