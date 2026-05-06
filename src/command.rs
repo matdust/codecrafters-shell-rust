@@ -1,4 +1,4 @@
-use log::info;
+use std::io::{Read, Write};
 
 use crate::{
     commands::{self},
@@ -7,34 +7,28 @@ use crate::{
 
 pub const COMMANDS: [&str; 5] = ["echo", "exit", "type", "pwd", "cd"];
 
-#[derive(Debug, PartialEq)]
+#[derive(PartialEq, Debug, Clone)]
 pub struct Command {
-    pub command_type: CommandType,
-    stdout: Option<Box<Stdio>>,
-    stdin: Option<Box<Stdio>>,
-    stderr: Option<Box<Stdio>>,
+    command_type: CommandType,
 }
 
 impl Command {
     pub fn from_token(token: &Token) -> Self {
         Command {
             command_type: CommandType::from_token(token),
-            stdout: None,
-            stdin: None,
-            stderr: None,
         }
     }
 
     pub fn from_string(input: &str) -> Self {
         Command {
             command_type: CommandType::from_string(input),
-            stdout: None,
-            stdin: None,
-            stderr: None,
         }
     }
-}
 
+    pub fn execute(&self, stdout: &mut dyn Write) {
+        self.command_type.execute(stdout);
+    }
+}
 #[derive(Debug, PartialEq, Clone)]
 pub enum CommandType {
     Exit,
@@ -81,55 +75,17 @@ impl CommandType {
         }
     }
 
-    pub fn execute(&self) {
+    pub fn execute(&self, stdout: &mut dyn Write) {
         match self {
             CommandType::Exit => commands::exit::execute(),
-            CommandType::NotFound { cmd } => commands::notfound::execute(cmd),
+            CommandType::NotFound { cmd } => commands::notfound::execute(cmd, stdout),
             CommandType::Exec { cmd, args } => {
-                commands::exec::execute(cmd, args.split_whitespace())
+                commands::exec::execute(cmd, args.split_whitespace(), stdout)
             }
-            CommandType::Type { args } => commands::r#type::execute(args),
-            CommandType::Echo { args } => commands::echo::execute(args),
-            CommandType::Pwd => commands::pwd::execute(),
+            CommandType::Type { args } => commands::r#type::execute(args, stdout),
+            CommandType::Echo { args } => commands::echo::execute(args, stdout),
+            CommandType::Pwd => commands::pwd::execute(stdout),
             CommandType::Cd { args } => commands::cd::execute(args),
         }
     }
 }
-
-// Handle output redirection and input redirection
-#[derive(Debug, PartialEq)]
-pub enum Stdio {
-    Console,
-    File { path: String },
-}
-
-// impl CommandType {
-//     pub fn new(input: &str) -> CommandType {
-//         let (cmd, args) = crate::utils::string::get_cmd_and_args(input);
-//
-//         info!("Parsed input\n cmd: {}\n args: {:?}\n", &cmd, &args);
-//
-//         if COMMANDS.contains(&cmd.as_str()) {
-//             match cmd.as_str() {
-//                 "exit" => CommandType::Exit,
-//                 "echo" => CommandType::Echo {
-//                     args: args.join(" "),
-//                 },
-//                 "type" => CommandType::Type {
-//                     args: args.join(" "),
-//                 },
-//                 "pwd" => CommandType::Pwd,
-//                 "cd" => CommandType::Cd {
-//                     args: args.first().cloned().unwrap_or(String::from("~")),
-//                 },
-//                 _ => CommandType::NotFound { cmd },
-//             }
-//         } else {
-//             match crate::utils::files::find_exe_in_env(&cmd) {
-//                 Some(_) => CommandType::Exec { cmd, args },
-//                 None => CommandType::NotFound { cmd },
-//             }
-//         }
-//     }
-//
-// }

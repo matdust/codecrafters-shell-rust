@@ -1,6 +1,8 @@
-use std::{ffi::OsStr, process::Command};
+use std::ffi::OsStr;
+use std::io::Write;
+use std::process::Command;
 
-pub fn execute<I, S>(cmd: &str, args: I)
+pub fn execute<I, S>(cmd: &str, args: I, stdout: &mut dyn Write)
 where
     I: IntoIterator<Item = S>,
     S: AsRef<OsStr>,
@@ -10,8 +12,7 @@ where
 
     match command.output() {
         Ok(output) => {
-            let stdout = String::from_utf8_lossy(&output.stdout);
-            print!("{}", stdout);
+            stdout.write_all(&output.stdout).unwrap();
         }
         Err(err) => eprintln!("error: {}", err),
     }

@@ -1,13 +1,15 @@
+use std::io::Write;
+
 use crate::{command::COMMANDS, utils::files::find_exe_in_env};
 
-pub fn execute(values: &str) {
+pub fn execute(values: &str, stdout: &mut dyn Write) {
     for cmd in values.split_whitespace() {
         if COMMANDS.contains(&cmd) {
-            println!("{} is a shell builtin", cmd);
+            writeln!(stdout, "{} is a shell builtin", cmd).unwrap();
         } else if let Some(path) = find_exe_in_env(cmd) {
-            println!("{} is {}", cmd, path.display())
+            writeln!(stdout, "{} is {}", cmd, path.display()).unwrap();
         } else {
-            println!("{}: not found", cmd);
+            writeln!(stdout, "{}: not found", cmd).unwrap();
         }
     }
 }

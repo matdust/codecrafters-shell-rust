@@ -1,15 +1,34 @@
+use std::io::Write;
+
 use crate::{lexer::OperatorType, parser::Node};
 
-pub fn interpret(ast: &Node) {
+pub fn interpret(ast: &Node, stdout: &mut dyn Write) {
     match ast {
-        Node::Leaf(command) => command.command_type.execute(),
+        Node::Leaf(command) => command.execute(stdout),
         Node::Operator {
             operation,
             left,
             right,
         } => match operation {
-            OperatorType::Pipe => todo!(),
-            OperatorType::RedirectStdout => todo!(),
+            OperatorType::Pipe => {
+                interpret(left, stdout);
+                interpret(right, stdout);
+                // let mut buffer = Vec::new();
+                // interpret(left, &mut buffer);
+                // pipe output becomes part of the right command's input
+                // for now, just write it to the right command's stdout
+                // stdout.write_all(&buffer).unwrap();
+                // interpret(right, stdout);
+            }
+            OperatorType::RedirectStdout => {
+                unreachable!("RedirectStdout should be parsed as Node::RedirectStdout");
+            }
         },
+        Node::RedirectStdout { source, target } => {
+            let mut file =
+                std::fs::File::create(target).expect("Failed to create redirect target file");
+            interpret(source, &mut file);
+        }
     }
 }
+

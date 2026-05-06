@@ -43,6 +43,10 @@ pub enum Node {
         left: Box<Node>,
         right: Box<Node>,
     },
+    RedirectStdout {
+        source: Box<Node>,
+        target: String,
+    },
 }
 
 pub fn build_ast(tokens: Vec<Token>) -> Result<Node, String> {
@@ -60,22 +64,20 @@ fn parse_operator(parser: &mut Parser) -> Result<Node, String> {
                 OperatorType::Pipe => {
                     parser.move_next();
                     let right = parse_command(parser)?;
-                    let new_head = Node::Operator {
+                    head = Node::Operator {
                         operation: OperatorType::Pipe,
                         left: Box::new(head),
                         right: Box::new(right),
                     };
-                    head = new_head;
                 }
                 OperatorType::RedirectStdout => {
                     parser.move_next();
-                    let right = parse_command(parser)?;
-                    let new_head = Node::Operator {
-                        operation: OperatorType::RedirectStdout,
-                        left: Box::new(head),
-                        right: Box::new(right),
-                    };
-                    head = new_head;
+                    if let Some(Token::Word(path)) = parser.consume() {
+                        head = Node::RedirectStdout {
+                            source: Box::new(head),
+                            target: path,
+                        };
+                    }
                 }
             },
             _ => break,

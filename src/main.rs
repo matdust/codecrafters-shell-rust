@@ -37,11 +37,12 @@ fn main() {
         info!("Raw input: {}", &input);
 
         let tokens = lexer::tokenize(&input);
+        // println!("TOKENS: {:#?}", &tokens);
+
         let ast = parser::build_ast(tokens).expect("Failed to build AST");
+        // println!("AST: {:#?}", &ast);
 
-        interpreter::interpret(&ast);
-
-        // println!("AST: {:#?}", ast.expect("Failed to build AST"));
+        interpreter::interpret(&ast, &mut io::stdout());
     }
 }
 
