@@ -25,10 +25,14 @@ pub fn interpret(ast: &Node, stdout: &mut dyn Write) {
             }
         },
         Node::RedirectStdout { source, target } => {
+            let path = std::path::Path::new(target);
+            let parent_dirs = path.parent().unwrap_or_else(|| std::path::Path::new("."));
+            std::fs::create_dir_all(parent_dirs)
+                .expect("Failed to create parent directories for redirect target file");
+
             let mut file =
-                std::fs::File::create(target).expect("Failed to create redirect target file");
+                std::fs::File::create(path).expect("Failed to create redirect target file");
             interpret(source, &mut file);
         }
     }
 }
-
