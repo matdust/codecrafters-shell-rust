@@ -17,7 +17,7 @@ pub enum OperatorType {
 pub fn tokenize(args: &str) -> Vec<Token> {
     let mut result = Vec::new();
 
-    let mut command_to_append = String::new();
+    let mut new_token = String::new();
 
     let mut single_quotes = false;
     let mut double_quotes = false;
@@ -28,10 +28,10 @@ pub fn tokenize(args: &str) -> Vec<Token> {
             literal_mode = false;
 
             if double_quotes && !ESCAPED_CHARS_BY_BACKSLASH_IN_DOUBLE_QUOTES.contains(&ch) {
-                command_to_append.push('\\');
+                new_token.push('\\');
             }
 
-            command_to_append.push(ch);
+            new_token.push(ch);
             continue;
         }
 
@@ -71,39 +71,44 @@ pub fn tokenize(args: &str) -> Vec<Token> {
             // }
             '|' => {
                 if !(single_quotes || double_quotes) {
-                    if command_to_append.is_empty() {
+                    if new_token.is_empty() {
                         result.push(Token::Operator(OperatorType::Pipe));
                         continue;
                     }
 
-                    result.push(Token::Word(command_to_append.trim().into()));
+                    result.push(Token::Word(new_token.trim().into()));
                     result.push(Token::Operator(OperatorType::Pipe));
-                    command_to_append.clear();
+                    new_token.clear();
                 } else {
-                    command_to_append.push(ch);
+                    new_token.push(ch);
                 }
             }
+
             '>' => {
                 if !(single_quotes || double_quotes) {
-                    if command_to_append.is_empty() {
+                    if new_token.is_empty() {
                         result.push(Token::Operator(OperatorType::RedirectStdout));
                         continue;
                     }
 
-                    result.push(Token::Word(command_to_append.trim().into()));
+                    if new_token.ends_with("1") {
+                        new_token.pop();
+                    }
+
+                    result.push(Token::Word(new_token.trim().into()));
                     result.push(Token::Operator(OperatorType::RedirectStdout));
-                    command_to_append.clear();
+                    new_token.clear();
                 } else {
-                    command_to_append.push(ch);
+                    new_token.push(ch);
                 }
             }
 
-            _ => command_to_append.push(ch),
+            _ => new_token.push(ch),
         }
     }
 
-    if !command_to_append.is_empty() {
-        result.push(Token::Word(command_to_append.trim().into()));
+    if !new_token.is_empty() {
+        result.push(Token::Word(new_token.trim().into()));
     }
 
     // println!("Tokens: {:?}", result);
