@@ -13,11 +13,11 @@ pub struct Command {
 }
 
 impl Command {
-    pub fn from_token(token: &Token) -> Self {
-        Command {
-            command_type: CommandType::from_token(token),
-        }
-    }
+    // pub fn from_token(token: &Token) -> Self {
+    //     Command {
+    //         command_type: CommandType::from_token(token),
+    //     }
+    // }
 
     pub fn from_string(input: &str) -> Self {
         Command {
@@ -41,22 +41,62 @@ pub enum CommandType {
 }
 
 impl CommandType {
-    fn from_token(token: &Token) -> Self {
-        match token {
-            Token::Word(command) => CommandType::from_string(command),
-            Token::Operator(_) => {
-                log::error!("Unexpected operator {:?} when parsing command", token);
-                unreachable!()
+    // fn from_token(token: &Token) -> Self {
+    //     match token {
+    //         Token::Word(command) => CommandType::from_string(command),
+    //         Token::Operator(_) => {
+    //             log::error!("Unexpected operator {:?} when parsing command", token);
+    //             unreachable!()
+    //         }
+    //     }
+    // }
+
+    fn parse_command_and_args(command: &str) -> (String, String) {
+        let mut single_quotes = false;
+        let mut double_quotes = false;
+        let mut buf = String::new();
+        let mut r = Vec::<String>::new();
+
+        for ch in command.trim().chars() {
+            // handle single quotes mode
+            if ch == '\'' && !double_quotes {
+                single_quotes = !single_quotes;
+                continue;
+            }
+
+            // handle single quotes mode
+            if ch == '"' && !single_quotes {
+                double_quotes = !double_quotes;
+                continue;
+            }
+            match ch {
+                ' ' => {
+                    if single_quotes || double_quotes {
+                        buf.push(ch);
+                    } else {
+                        r.push(buf.clone());
+                        buf.clear();
+                    }
+                }
+                _ => buf.push(ch),
             }
         }
+
+        if !buf.is_empty() {
+            r.push(buf);
+        }
+
+        // println!("input: {}", &command);
+        // // let r = command.split('\'').collect::<Vec<_>>();
+        // println!("splitted command: '{:?}'", r);
+
+        (r.first().unwrap().to_string(), r[1..].join(" "))
     }
 
     fn from_string(command: &str) -> Self {
-        let (cmd, args) = command
-            .split_once(' ')
-            .map_or((command.to_owned(), "".to_string()), |(c, a)| {
-                (c.to_string(), a.to_string())
-            });
+        let (cmd, args) = Self::parse_command_and_args(command);
+
+        // println!("Parsing command: cmd='{}', args='{}'", cmd, args);
 
         if COMMANDS.contains(&cmd.as_str()) {
             match cmd.as_str() {

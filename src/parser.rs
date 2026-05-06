@@ -72,7 +72,7 @@ fn parse_operator(parser: &mut Parser) -> Result<Node, String> {
                 }
                 OperatorType::RedirectStdout => {
                     parser.move_next();
-                    if let Some(Token::Word(path)) = parser.consume() {
+                    if let Some(Token::Path(path)) = parser.consume() {
                         head = Node::RedirectStdout {
                             source: Box::new(head),
                             target: path,
@@ -89,8 +89,8 @@ fn parse_operator(parser: &mut Parser) -> Result<Node, String> {
 
 // handles Node::Leaf
 fn parse_command(parser: &mut Parser) -> Result<Node, String> {
-    if let Some(Token::Word(input)) = parser.consume() {
-        return Result::Ok(Node::Leaf(Command::from_string(&input)));
+    if let Some(Token::Node(command)) = parser.consume() {
+        return Result::Ok(Node::Leaf(command));
     }
 
     Result::Err("Unexpected end of input".to_string())

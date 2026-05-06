@@ -9,7 +9,7 @@ where
 {
     let mut command = Command::new(cmd);
     command.args(args);
-    command.stderr(std::process::Stdio::inherit()); // always let stderr go to terminal
+    command.stderr(std::process::Stdio::inherit());
 
     match command.stdout(std::process::Stdio::piped()).spawn() {
         Ok(child) => {
