@@ -9,13 +9,11 @@ where
 {
     let mut command = Command::new(cmd);
     command.args(args);
+    command.stderr(std::process::Stdio::inherit()); // always let stderr go to terminal
 
-    match command.output() {
-        Ok(output) => {
-            if output.stdout.is_empty() && !output.stderr.is_empty() {
-                print!("{}", String::from_utf8_lossy(&output.stderr));
-                return;
-            }
+    match command.stdout(std::process::Stdio::piped()).spawn() {
+        Ok(child) => {
+            let output = child.wait_with_output().unwrap();
             stdout.write_all(&output.stdout).unwrap();
         }
         Err(err) => eprintln!("error: {}", err),
