@@ -12,8 +12,13 @@ where
 
     match command.output() {
         Ok(output) => {
+            if output.stdout.is_empty() && !output.stderr.is_empty() {
+                println!("{}", String::from_utf8_lossy(&output.stderr));
+                return;
+            }
             stdout.write_all(&output.stdout).unwrap();
         }
         Err(err) => eprintln!("error: {}", err),
     }
 }
+
