@@ -103,9 +103,15 @@ pub fn tokenize(args: &str) -> Vec<Token> {
         }
     }
 
-    if !new_token.is_empty()
-        && let Some(token) = result.last()
-    {
+    if !new_token.is_empty() {
+        let Some(token) = result.last() else {
+            result.push(Token::Node(crate::command::Command::from_string(
+                new_token.trim(),
+            )));
+            return result;
+        };
+
+        println!("new_token: {new_token}");
         let token_to_add = match token {
             Token::Operator(operator_type) => match operator_type {
                 OperatorType::RedirectStdout => Token::Path(new_token.trim().to_string()),

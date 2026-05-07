@@ -13,12 +13,6 @@ pub struct Command {
 }
 
 impl Command {
-    // pub fn from_token(token: &Token) -> Self {
-    //     Command {
-    //         command_type: CommandType::from_token(token),
-    //     }
-    // }
-
     pub fn from_string(input: &str) -> Self {
         Command {
             command_type: CommandType::from_string(input),
@@ -41,17 +35,8 @@ pub enum CommandType {
 }
 
 impl CommandType {
-    // fn from_token(token: &Token) -> Self {
-    //     match token {
-    //         Token::Word(command) => CommandType::from_string(command),
-    //         Token::Operator(_) => {
-    //             log::error!("Unexpected operator {:?} when parsing command", token);
-    //             unreachable!()
-    //         }
-    //     }
-    // }
-
     fn parse_command_and_args(command: &str) -> (String, String) {
+        println!("parsing command: {}", command);
         let mut single_quotes = false;
         let mut double_quotes = false;
         let mut buf = String::new();
@@ -85,11 +70,6 @@ impl CommandType {
         if !buf.is_empty() {
             r.push(buf);
         }
-
-        // println!("input: {}", &command);
-        // // let r = command.split('\'').collect::<Vec<_>>();
-        // println!("splitted command: '{:?}'", r);
-
         (r.first().unwrap().to_string(), r[1..].join(" "))
     }
 
