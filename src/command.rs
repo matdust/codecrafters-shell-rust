@@ -74,6 +74,9 @@ impl CommandType {
                     if single_quotes || double_quotes {
                         buf.push(ch);
                     } else {
+                        if buf.is_empty() {
+                            continue;
+                        }
                         r.push(buf.clone());
                         buf.clear();
                     }
