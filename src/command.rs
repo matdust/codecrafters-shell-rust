@@ -36,7 +36,6 @@ pub enum CommandType {
 
 impl CommandType {
     fn parse_command_and_args(command: &str) -> (String, String) {
-        println!("parsing command: {}", command);
         let mut single_quotes = false;
         let mut double_quotes = false;
         let mut buf = String::new();
@@ -75,8 +74,6 @@ impl CommandType {
 
     fn from_string(command: &str) -> Self {
         let (cmd, args) = Self::parse_command_and_args(command);
-
-        // println!("Parsing command: cmd='{}', args='{}'", cmd, args);
 
         if COMMANDS.contains(&cmd.as_str()) {
             match cmd.as_str() {
