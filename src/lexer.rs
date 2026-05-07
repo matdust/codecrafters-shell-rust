@@ -111,7 +111,6 @@ pub fn tokenize(args: &str) -> Vec<Token> {
             return result;
         };
 
-        println!("new_token: {new_token}");
         let token_to_add = match token {
             Token::Operator(operator_type) => match operator_type {
                 OperatorType::RedirectStdout => Token::Path(new_token.trim().to_string()),
