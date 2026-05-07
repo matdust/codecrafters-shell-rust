@@ -23,15 +23,15 @@ impl Command {
 pub enum CommandType {
     Exit,
     NotFound { cmd: String },
-    Echo { args: String },
-    Type { args: String },
-    Exec { cmd: String, args: String },
+    Echo { args: Vec<String> },
+    Type { args: Vec<String> },
+    Exec { cmd: String, args: Vec<String> },
     Pwd,
-    Cd { args: String },
+    Cd { args: Vec<String> },
 }
 
 impl CommandType {
-    fn parse_command_and_args(command: &str) -> (String, String) {
+    fn parse_command_and_args(command: &str) -> (String, Vec<String>) {
         let mut single_quotes = false;
         let mut double_quotes = false;
         let mut literal_mode = false;
@@ -85,13 +85,16 @@ impl CommandType {
         if !buf.is_empty() {
             r.push(buf);
         }
-        (r.first().unwrap().to_string(), r[1..].join(" "))
+        (
+            r.first().unwrap().to_string(),
+            r.iter().skip(1).cloned().collect(),
+        )
     }
 
     fn from_string(command: &str) -> Self {
-        // println!("[RAW] CMD: {}", command);
+        println!("[RAW] CMD: {}", command);
         let (cmd, args) = Self::parse_command_and_args(command);
-        // println!("[PARSED] CMD: {}, ARGS: {}", cmd, args);
+        println!("[PARSED] CMD: {}, ARGS: {:?}", cmd, args);
 
         if COMMANDS.contains(&cmd.as_str()) {
             match cmd.as_str() {
@@ -114,13 +117,23 @@ impl CommandType {
         match self {
             CommandType::Exit => commands::exit::execute(),
             CommandType::NotFound { cmd } => commands::notfound::execute(cmd, stdout),
-            CommandType::Exec { cmd, args } => {
-                commands::exec::execute(cmd, args.split_whitespace(), stdout)
-            }
-            CommandType::Type { args } => commands::r#type::execute(args, stdout),
-            CommandType::Echo { args } => commands::echo::execute(args, stdout),
+            CommandType::Exec { cmd, args } => commands::exec::execute(
+                cmd,
+                args.iter().map(|s| s.as_str()).collect::<Vec<_>>(),
+                stdout,
+            ),
+            CommandType::Type { args } => commands::r#type::execute(
+                &args.iter().map(|s| s.as_str()).collect::<Vec<_>>(),
+                stdout,
+            ),
+            CommandType::Echo { args } => commands::echo::execute(
+                &args.iter().map(|s| s.as_str()).collect::<Vec<_>>(),
+                stdout,
+            ),
             CommandType::Pwd => commands::pwd::execute(stdout),
-            CommandType::Cd { args } => commands::cd::execute(args),
+            CommandType::Cd { args } => {
+                commands::cd::execute(&args.iter().map(|s| s.as_str()).collect::<Vec<_>>())
+            }
         }
     }
 }

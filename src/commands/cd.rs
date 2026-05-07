@@ -1,6 +1,7 @@
 use std::{env, path::PathBuf};
 
-pub fn execute(path: &str) {
+pub fn execute(args: &[&str]) {
+    let path = if args.is_empty() { "~" } else { args[0] };
     let mut path_chars = path.chars();
     let Some(path_type) = path_chars.next() else {
         eprintln!("cannot get path");
