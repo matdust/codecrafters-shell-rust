@@ -92,9 +92,9 @@ impl CommandType {
     }
 
     fn from_string(command: &str) -> Self {
-        println!("[RAW] CMD: {}", command);
+        // println!("[RAW] CMD: {}", command);
         let (cmd, args) = Self::parse_command_and_args(command);
-        println!("[PARSED] CMD: {}, ARGS: {:?}", cmd, args);
+        // println!("[PARSED] CMD: {}, ARGS: {:?}", cmd, args);
 
         if COMMANDS.contains(&cmd.as_str()) {
             match cmd.as_str() {
