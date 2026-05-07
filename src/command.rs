@@ -1,4 +1,4 @@
-use std::io::{Read, Write};
+use std::io::Write;
 
 use crate::{
     commands::{self},
@@ -56,6 +56,7 @@ impl CommandType {
             match ch {
                 ' ' => {
                     if single_quotes || double_quotes {
+                        buf.push(ch);
                     } else {
                         r.push(buf.clone());
                         buf.clear();
