@@ -1,10 +1,4 @@
-const ESCAPED_CHARS_BY_BACKSLASH_IN_DOUBLE_QUOTES: [char; 5] = ['"', '\\', '$', '`', 'n'];
-
-// #[derive(Debug, PartialEq, Clone)]
-// pub enum Token {
-//     Word(String),
-//     Operator(OperatorType),
-// }
+pub const ESCAPED_CHARS_BY_BACKSLASH_IN_DOUBLE_QUOTES: [char; 5] = ['"', '\\', '$', '`', 'n'];
 
 #[derive(Debug, PartialEq, Clone)]
 pub(crate) enum Token {
@@ -42,6 +36,7 @@ pub fn tokenize(args: &str) -> Vec<Token> {
 
         // check if we can enter literal mode -- cannot be entered when single_quotes_mode is on
         if ch == '\\' && !single_quotes {
+            new_token.push(ch);
             literal_mode = true;
             continue;
         }
@@ -53,7 +48,7 @@ pub fn tokenize(args: &str) -> Vec<Token> {
             continue;
         }
 
-        // handle single quotes mode
+        // handle double quotes mode
         if ch == '"' && !single_quotes {
             double_quotes = !double_quotes;
             new_token.push(ch);
@@ -112,6 +107,7 @@ pub fn tokenize(args: &str) -> Vec<Token> {
         };
 
         let token_to_add = match token {
+            // TODO: fix warning
             Token::Operator(operator_type) => match operator_type {
                 OperatorType::RedirectStdout => Token::Path(new_token.trim().to_string()),
                 _ => Token::Node(crate::command::Command::from_string(new_token.trim())),

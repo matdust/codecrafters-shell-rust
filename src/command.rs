@@ -1,12 +1,8 @@
 use std::io::Write;
 
-use crate::{
-    commands::{self},
-    lexer::Token,
-};
+use crate::commands::{self};
 
 pub const COMMANDS: [&str; 5] = ["echo", "exit", "type", "pwd", "cd"];
-
 #[derive(PartialEq, Debug, Clone)]
 pub struct Command {
     command_type: CommandType,
@@ -38,17 +34,37 @@ impl CommandType {
     fn parse_command_and_args(command: &str) -> (String, String) {
         let mut single_quotes = false;
         let mut double_quotes = false;
+        let mut literal_mode = false;
         let mut buf = String::new();
         let mut r = Vec::<String>::new();
 
         for ch in command.trim().chars() {
+            if literal_mode {
+                literal_mode = false;
+
+                if double_quotes
+                    && !crate::lexer::ESCAPED_CHARS_BY_BACKSLASH_IN_DOUBLE_QUOTES.contains(&ch)
+                {
+                    buf.push('\\');
+                }
+
+                buf.push(ch);
+                continue;
+            }
+
+            // check if we can enter literal mode -- cannot be entered when single_quotes_mode is on
+            if ch == '\\' && !single_quotes {
+                literal_mode = true;
+                continue;
+            }
+
             // handle single quotes mode
             if ch == '\'' && !double_quotes {
                 single_quotes = !single_quotes;
                 continue;
             }
 
-            // handle single quotes mode
+            // handle double quotes mode
             if ch == '"' && !single_quotes {
                 double_quotes = !double_quotes;
                 continue;
@@ -73,7 +89,9 @@ impl CommandType {
     }
 
     fn from_string(command: &str) -> Self {
+        // println!("[RAW] CMD: {}", command);
         let (cmd, args) = Self::parse_command_and_args(command);
+        // println!("[PARSED] CMD: {}, ARGS: {}", cmd, args);
 
         if COMMANDS.contains(&cmd.as_str()) {
             match cmd.as_str() {
