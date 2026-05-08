@@ -15,8 +15,8 @@ impl Command {
         }
     }
 
-    pub fn execute(&self, stdout: &mut dyn Write) {
-        self.command_type.execute(stdout);
+    pub fn execute(&self, stdout: &mut dyn Write, stderr: &mut dyn Write) {
+        self.command_type.execute(stdout, stderr);
     }
 }
 #[derive(Debug, PartialEq, Clone)]
@@ -116,7 +116,7 @@ impl CommandType {
         }
     }
 
-    pub fn execute(&self, stdout: &mut dyn Write) {
+    pub fn execute(&self, stdout: &mut dyn Write, stderr: &mut dyn Write) {
         match self {
             CommandType::Exit => commands::exit::execute(),
             CommandType::NotFound { cmd } => commands::notfound::execute(cmd, stdout),
@@ -124,6 +124,7 @@ impl CommandType {
                 cmd,
                 args.iter().map(|s| s.as_str()).collect::<Vec<_>>(),
                 stdout,
+                stderr,
             ),
             CommandType::Type { args } => commands::r#type::execute(
                 &args.iter().map(|s| s.as_str()).collect::<Vec<_>>(),

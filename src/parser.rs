@@ -1,5 +1,5 @@
 use crate::command::Command;
-use crate::lexer::{OperatorType, Token};
+use crate::lexer::Token;
 
 #[derive(Debug, PartialEq)]
 pub struct Parser {
@@ -38,15 +38,9 @@ impl Parser {
 #[derive(Debug, PartialEq)]
 pub enum Node {
     Leaf(Command),
-    Operator {
-        operation: OperatorType,
-        left: Box<Node>,
-        right: Box<Node>,
-    },
-    RedirectStdout {
-        source: Box<Node>,
-        target: String,
-    },
+    Pipe { left: Box<Node>, right: Box<Node> },
+    RedirectStdout { source: Box<Node>, target: String },
+    RedirectStderr { source: Box<Node>, target: String },
 }
 
 pub fn build_ast(tokens: Vec<Token>) -> Result<Node, String> {
@@ -60,26 +54,32 @@ fn parse_operator(parser: &mut Parser) -> Result<Node, String> {
 
     while let Some(token) = parser.get_current() {
         match token {
-            Token::Operator(operator_type) => match operator_type {
-                OperatorType::Pipe => {
-                    parser.move_next();
-                    let right = parse_command(parser)?;
-                    head = Node::Operator {
-                        operation: OperatorType::Pipe,
-                        left: Box::new(head),
-                        right: Box::new(right),
+            Token::Pipe => {
+                parser.move_next();
+                let right = parse_command(parser)?;
+                head = Node::Pipe {
+                    left: Box::new(head),
+                    right: Box::new(right),
+                };
+            }
+            Token::RedirectStdout => {
+                parser.move_next();
+                if let Some(Token::Path(path)) = parser.consume() {
+                    head = Node::RedirectStdout {
+                        source: Box::new(head),
+                        target: path,
                     };
                 }
-                OperatorType::RedirectStdout => {
-                    parser.move_next();
-                    if let Some(Token::Path(path)) = parser.consume() {
-                        head = Node::RedirectStdout {
-                            source: Box::new(head),
-                            target: path,
-                        };
-                    }
+            }
+            Token::RedirectStderr => {
+                parser.move_next();
+                if let Some(Token::Path(path)) = parser.consume() {
+                    head = Node::RedirectStderr {
+                        source: Box::new(head),
+                        target: path,
+                    };
                 }
-            },
+            }
             _ => break,
         }
     }

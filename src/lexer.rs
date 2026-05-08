@@ -4,13 +4,9 @@ pub const ESCAPED_CHARS_BY_BACKSLASH_IN_DOUBLE_QUOTES: [char; 5] = ['"', '\\', '
 pub(crate) enum Token {
     Node(crate::command::Command),
     Path(String),
-    Operator(OperatorType),
-}
-
-#[derive(Debug, PartialEq, Clone)]
-pub enum OperatorType {
     Pipe,
     RedirectStdout,
+    RedirectStderr,
 }
 
 pub fn tokenize(args: &str) -> Vec<Token> {
@@ -59,14 +55,14 @@ pub fn tokenize(args: &str) -> Vec<Token> {
             '|' => {
                 if !(single_quotes || double_quotes) {
                     if new_token.is_empty() {
-                        result.push(Token::Operator(OperatorType::Pipe));
+                        result.push(Token::Pipe);
                         continue;
                     }
 
                     result.push(Token::Node(crate::command::Command::from_string(
                         new_token.trim(),
                     )));
-                    result.push(Token::Operator(OperatorType::Pipe));
+                    result.push(Token::Pipe);
                     new_token.clear();
                 } else {
                     new_token.push(ch);
@@ -76,18 +72,29 @@ pub fn tokenize(args: &str) -> Vec<Token> {
             '>' => {
                 if !(single_quotes || double_quotes) {
                     if new_token.is_empty() {
-                        result.push(Token::Operator(OperatorType::RedirectStdout));
+                        result.push(Token::RedirectStdout);
                         continue;
                     }
 
-                    if new_token.ends_with("1") {
-                        new_token.pop();
-                    }
+                    let redirect = if let Some(last_char) = new_token.pop() {
+                        match last_char {
+                            '1' => Token::RedirectStdout,
+                            '2' => Token::RedirectStderr,
+                            _ => {
+                                new_token.push(last_char);
+                                Token::RedirectStdout
+                            }
+                        }
+                    } else {
+                        Token::RedirectStdout
+                    };
 
                     result.push(Token::Node(crate::command::Command::from_string(
                         new_token.trim(),
                     )));
-                    result.push(Token::Operator(OperatorType::RedirectStdout));
+
+                    result.push(redirect);
+
                     new_token.clear();
                 } else {
                     new_token.push(ch);
@@ -98,6 +105,7 @@ pub fn tokenize(args: &str) -> Vec<Token> {
         }
     }
 
+    // check if buf is not empty and push it as a token
     if !new_token.is_empty() {
         let Some(token) = result.last() else {
             result.push(Token::Node(crate::command::Command::from_string(
@@ -107,15 +115,234 @@ pub fn tokenize(args: &str) -> Vec<Token> {
         };
 
         let token_to_add = match token {
-            // TODO: fix warning
-            Token::Operator(operator_type) => match operator_type {
-                OperatorType::RedirectStdout => Token::Path(new_token.trim().to_string()),
-                _ => Token::Node(crate::command::Command::from_string(new_token.trim())),
-            },
+            Token::RedirectStdout | Token::RedirectStderr => {
+                Token::Path(new_token.trim().to_string())
+            }
             _ => Token::Node(crate::command::Command::from_string(new_token.trim())),
         };
         result.push(token_to_add);
     }
 
     result
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::command::Command;
+
+    fn node(s: &str) -> Token {
+        Token::Node(Command::from_string(s))
+    }
+
+    fn path(s: &str) -> Token {
+        Token::Path(s.to_string())
+    }
+
+    // --- Basic tokenization ---
+
+    #[test]
+    fn simple_command() {
+        let tokens = tokenize("echo hello");
+        assert_eq!(tokens, vec![node("echo hello")]);
+    }
+
+    #[test]
+    fn empty_input() {
+        let tokens = tokenize("");
+        assert_eq!(tokens, vec![]);
+    }
+
+    #[test]
+    fn whitespace_only() {
+        let tokens = tokenize("   ");
+        assert_eq!(tokens, vec![]);
+    }
+
+    #[test]
+    fn leading_and_trailing_whitespace() {
+        let tokens = tokenize("  echo hello  ");
+        assert_eq!(tokens, vec![node("echo hello")]);
+    }
+
+    // --- Pipe ---
+
+    #[test]
+    fn pipe_between_commands() {
+        let tokens = tokenize("echo hello | echo world");
+        assert_eq!(
+            tokens,
+            vec![node("echo hello"), Token::Pipe, node("echo world")]
+        );
+    }
+
+    #[test]
+    fn multiple_pipes() {
+        let tokens = tokenize("echo a | echo b | echo c");
+        assert_eq!(
+            tokens,
+            vec![
+                node("echo a"),
+                Token::Pipe,
+                node("echo b"),
+                Token::Pipe,
+                node("echo c"),
+            ]
+        );
+    }
+
+    #[test]
+    fn pipe_no_spaces() {
+        let tokens = tokenize("echo hello|echo world");
+        assert_eq!(
+            tokens,
+            vec![node("echo hello"), Token::Pipe, node("echo world")]
+        );
+    }
+
+    // --- Redirect stdout ---
+
+    #[test]
+    fn redirect_stdout() {
+        let tokens = tokenize("echo hello > file.txt");
+        assert_eq!(
+            tokens,
+            vec![node("echo hello"), Token::RedirectStdout, path("file.txt")]
+        );
+    }
+
+    #[test]
+    fn redirect_stdout_explicit() {
+        let tokens = tokenize("echo hello 1> file.txt");
+        assert_eq!(
+            tokens,
+            vec![node("echo hello"), Token::RedirectStdout, path("file.txt")]
+        );
+    }
+
+    #[test]
+    fn redirect_stdout_no_spaces() {
+        let tokens = tokenize("echo hello>file.txt");
+        assert_eq!(
+            tokens,
+            vec![node("echo hello"), Token::RedirectStdout, path("file.txt")]
+        );
+    }
+
+    // --- Redirect stderr ---
+
+    #[test]
+    fn redirect_stderr() {
+        let tokens = tokenize("echo hello 2> file.txt");
+        assert_eq!(
+            tokens,
+            vec![node("echo hello"), Token::RedirectStderr, path("file.txt")]
+        );
+    }
+
+    #[test]
+    fn redirect_stderr_no_spaces() {
+        let tokens = tokenize("echo hello2>file.txt");
+        assert_eq!(
+            tokens,
+            vec![node("echo hello"), Token::RedirectStderr, path("file.txt")]
+        );
+    }
+
+    // --- Single quotes ---
+
+    #[test]
+    fn single_quotes_prevent_pipe_split() {
+        let tokens = tokenize("echo 'hello|world'");
+        assert_eq!(tokens, vec![node("echo 'hello|world'")]);
+    }
+
+    #[test]
+    fn single_quotes_prevent_redirect() {
+        let tokens = tokenize("echo 'hello>world'");
+        assert_eq!(tokens, vec![node("echo 'hello>world'")]);
+    }
+
+    #[test]
+    fn single_quotes_prevent_backslash_escape() {
+        let tokens = tokenize(r"echo 'hello\nworld'");
+        assert_eq!(tokens, vec![node(r"echo 'hello\nworld'")]);
+    }
+
+    // --- Double quotes ---
+
+    #[test]
+    fn double_quotes_prevent_pipe_split() {
+        let tokens = tokenize(r#"echo "hello|world""#);
+        assert_eq!(tokens, vec![node(r#"echo "hello|world""#)]);
+    }
+
+    #[test]
+    fn double_quotes_prevent_redirect() {
+        let tokens = tokenize(r#"echo "hello>world""#);
+        assert_eq!(tokens, vec![node(r#"echo "hello>world""#)]);
+    }
+
+    // --- Backslash escaping ---
+
+    #[test]
+    fn backslash_escapes_pipe() {
+        let tokens = tokenize(r"echo hello\|world");
+        assert_eq!(tokens, vec![node(r"echo hello\|world")]);
+    }
+
+    #[test]
+    fn backslash_escapes_redirect() {
+        let tokens = tokenize(r"echo hello\>world");
+        assert_eq!(tokens, vec![node(r"echo hello\>world")]);
+    }
+
+    #[test]
+    fn backslash_in_double_quotes_escaped_char() {
+        let tokens = tokenize(r#"echo "hello\"world""#);
+        assert_eq!(tokens, vec![node(r#"echo "hello\"world""#)]);
+    }
+
+    #[test]
+    fn backslash_in_double_quotes_non_escaped_char() {
+        let tokens = tokenize(r#"echo "hello\aworld""#);
+        // The tokenizer pushes both '\' and 'a' when char is not in the escaped set
+        assert_eq!(tokens, vec![node(r#"echo "hello\\aworld""#)]);
+    }
+
+    // --- Combined operators ---
+
+    #[test]
+    fn pipe_then_redirect() {
+        let tokens = tokenize("echo hello | echo world > file.txt");
+        assert_eq!(
+            tokens,
+            vec![
+                node("echo hello"),
+                Token::Pipe,
+                node("echo world"),
+                Token::RedirectStdout,
+                path("file.txt"),
+            ]
+        );
+    }
+
+    #[test]
+    fn redirect_stderr_at_end() {
+        let tokens = tokenize("echo hello world 2> err.log");
+        assert_eq!(
+            tokens,
+            vec![
+                node("echo hello world"),
+                Token::RedirectStderr,
+                path("err.log"),
+            ]
+        );
+    }
+
+    #[test]
+    fn mixed_quotes() {
+        let tokens = tokenize("echo 'hello' \"world\"");
+        assert_eq!(tokens, vec![node("echo 'hello' \"world\"")]);
+    }
 }

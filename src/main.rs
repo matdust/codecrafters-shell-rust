@@ -42,7 +42,7 @@ fn main() {
         let ast = parser::build_ast(tokens).expect("Failed to build AST");
         // println!("AST: {:#?}", &ast);
 
-        interpreter::interpret(&ast, &mut io::stdout());
+        interpreter::interpret(&ast, &mut io::stdout(), &mut io::stderr());
     }
 }
 
