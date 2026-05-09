@@ -1,0 +1,13 @@
+#V2
+echo
+echo "History of the project:"
+echo "1. Initial commit: Set up project structure and basic files."
+echo test
+cat history.txt
+echo foo
+echo bar
+echo foo
+echo bar
+echo foo1
+echo foo2
+pwd

@@ -11,3 +11,4 @@ bytes = "1.3.0"      # helps manage buffers
 thiserror = "1.0.38" # error handling
 fern = "0.7.*"
 log = "0.4.29"
+rustyline = { version = "18.0.0", features = ["with-file-history"] }
