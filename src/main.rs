@@ -83,15 +83,18 @@ impl rustyline::completion::Completer for MyHelper {
 impl rustyline::hint::Hinter for MyHelper {
     type Hint = String;
     fn hint(&self, line: &str, pos: usize, ctx: &rustyline::Context<'_>) -> Option<Self::Hint> {
-        if let Ok((start, c)) = self.complete(line, pos, ctx)
-            && let Some(e) = c.first()
-        {
-            let typed_len = pos - start;
-            Some(e[typed_len..].to_string())
-        } else {
-            None
-        }
+        None
     }
+    // fn hint(&self, line: &str, pos: usize, ctx: &rustyline::Context<'_>) -> Option<Self::Hint> {
+    //     if let Ok((start, c)) = self.complete(line, pos, ctx)
+    //         && let Some(e) = c.first()
+    //     {
+    //         let typed_len = pos - start;
+    //         Some(e[typed_len..].to_string())
+    //     } else {
+    //         None
+    //     }
+    // }
 }
 
 impl rustyline::highlight::Highlighter for MyHelper {}
