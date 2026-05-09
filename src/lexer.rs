@@ -8,6 +8,7 @@ pub(crate) enum Token {
     RedirectStdout,
     RedirectStderr,
     AppendStdout,
+    AppendStderr,
 }
 
 pub fn tokenize(args: &str) -> Vec<Token> {
@@ -118,6 +119,7 @@ pub fn tokenize(args: &str) -> Vec<Token> {
                         continue;
                     }
 
+                    // move iterator to check next char
                     chars.next();
 
                     let Some(next_next_char) = chars.peek() else {
@@ -162,13 +164,25 @@ pub fn tokenize(args: &str) -> Vec<Token> {
                         continue;
                     }
 
+                    // move iterator to check next char
                     chars.next();
+
+                    let redirect_token = if let Some(next_next_char) = chars.peek() {
+                        if *next_next_char == '>' {
+                            chars.next();
+                            Token::AppendStderr
+                        } else {
+                            Token::RedirectStderr
+                        }
+                    } else {
+                        Token::RedirectStderr
+                    };
 
                     result.push(Token::Node(crate::command::Command::from_string(
                         new_token.trim(),
                     )));
 
-                    result.push(Token::RedirectStderr);
+                    result.push(redirect_token);
 
                     new_token.clear()
                 } else {
@@ -189,9 +203,10 @@ pub fn tokenize(args: &str) -> Vec<Token> {
         };
 
         let token_to_add = match token {
-            Token::RedirectStdout | Token::RedirectStderr | Token::AppendStdout => {
-                Token::Path(new_token.trim().to_string())
-            }
+            Token::RedirectStdout
+            | Token::RedirectStderr
+            | Token::AppendStdout
+            | Token::AppendStderr => Token::Path(new_token.trim().to_string()),
             _ => Token::Node(crate::command::Command::from_string(new_token.trim())),
         };
         result.push(token_to_add);
@@ -344,7 +359,7 @@ mod tests {
     }
 
     #[test]
-    fn no_redirect_stderr_at_en() {
+    fn no_redirect_stderr_at_end() {
         let tokens = tokenize("echo hello 2");
         assert_eq!(tokens, vec![node("echo hello 2")]);
     }
@@ -392,6 +407,25 @@ mod tests {
         );
     }
 
+    // --- Append stderr ---
+
+    #[test]
+    fn append_stderr() {
+        let tokens = tokenize("echo hello 2>> file.txt");
+        assert_eq!(
+            tokens,
+            vec![node("echo hello"), Token::AppendStderr, path("file.txt")]
+        );
+    }
+
+    #[test]
+    fn append_stderr_no_spaces() {
+        let tokens = tokenize("echo hello2>>file.txt");
+        assert_eq!(
+            tokens,
+            vec![node("echo hello"), Token::AppendStderr, path("file.txt")]
+        );
+    }
     // --- Single quotes ---
 
     #[test]

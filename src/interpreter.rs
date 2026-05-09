@@ -42,5 +42,18 @@ pub fn interpret(ast: &Node, stdout: &mut dyn Write, stderr: &mut dyn Write) {
                 .expect("Failed to open redirect target file");
             interpret(source, &mut file, stderr);
         }
+        Node::AppendStderr { source, target } => {
+            let path = std::path::Path::new(target);
+            let parent_dirs = path.parent().unwrap_or_else(|| std::path::Path::new("."));
+            std::fs::create_dir_all(parent_dirs)
+                .expect("Failed to create parent directories for redirect target file");
+
+            let mut file = std::fs::OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open(path)
+                .expect("Failed to open redirect target file");
+            interpret(source, stdout, &mut file);
+        }
     }
 }

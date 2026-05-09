@@ -18,7 +18,6 @@ where
             stdout.write_all(&output.stdout).unwrap();
         }
         Err(err) => {
-            println!("here 2");
             stderr.write_all(&format!("{}", err).into_bytes()).unwrap();
         }
     }

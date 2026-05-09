@@ -1,0 +1,2 @@
+cat: bar: No such file or directory
+cat: foo: No such file or directory
