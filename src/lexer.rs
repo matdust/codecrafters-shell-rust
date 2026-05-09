@@ -7,6 +7,7 @@ pub(crate) enum Token {
     Pipe,
     RedirectStdout,
     RedirectStderr,
+    AppendStdout,
 }
 
 pub fn tokenize(args: &str) -> Vec<Token> {
@@ -18,7 +19,9 @@ pub fn tokenize(args: &str) -> Vec<Token> {
     let mut double_quotes = false;
     let mut literal_mode = false;
 
-    for ch in args.trim().chars() {
+    let mut chars = args.trim().chars().peekable();
+
+    while let Some(ch) = chars.next() {
         if literal_mode {
             literal_mode = false;
 
@@ -68,22 +71,18 @@ pub fn tokenize(args: &str) -> Vec<Token> {
                     new_token.push(ch);
                 }
             }
-
             '>' => {
                 if !(single_quotes || double_quotes) {
                     if new_token.is_empty() {
                         result.push(Token::RedirectStdout);
                         continue;
                     }
-
-                    let redirect = if let Some(last_char) = new_token.pop() {
-                        match last_char {
-                            '1' => Token::RedirectStdout,
-                            '2' => Token::RedirectStderr,
-                            _ => {
-                                new_token.push(last_char);
-                                Token::RedirectStdout
-                            }
+                    let redirect_token = if let Some(next_char) = chars.peek() {
+                        if *next_char == '>' {
+                            chars.next();
+                            Token::AppendStdout
+                        } else {
+                            Token::RedirectStdout
                         }
                     } else {
                         Token::RedirectStdout
@@ -93,14 +92,89 @@ pub fn tokenize(args: &str) -> Vec<Token> {
                         new_token.trim(),
                     )));
 
-                    result.push(redirect);
+                    result.push(redirect_token);
 
-                    new_token.clear();
+                    new_token.clear()
                 } else {
                     new_token.push(ch);
                 }
             }
+            '1' => {
+                if !(single_quotes || double_quotes) {
+                    if new_token.is_empty() {
+                        result.push(Token::RedirectStdout);
+                        continue;
+                    }
 
+                    // standard '1' no redirection, just part of args
+                    let Some(next_char) = chars.peek() else {
+                        new_token.push(ch);
+                        continue;
+                    };
+
+                    // standard '1' no redirection, just part of args
+                    if next_char != &'>' {
+                        new_token.push(ch);
+                        continue;
+                    }
+
+                    chars.next();
+
+                    let Some(next_next_char) = chars.peek() else {
+                        continue;
+                    };
+
+                    let redirect_token = match next_next_char {
+                        '>' => {
+                            chars.next();
+                            Token::AppendStdout
+                        }
+                        _ => Token::RedirectStdout,
+                    };
+
+                    result.push(Token::Node(crate::command::Command::from_string(
+                        new_token.trim(),
+                    )));
+
+                    result.push(redirect_token);
+
+                    new_token.clear()
+                } else {
+                    new_token.push(ch);
+                }
+            }
+            '2' => {
+                if !(single_quotes || double_quotes) {
+                    if new_token.is_empty() {
+                        result.push(Token::RedirectStderr);
+                        continue;
+                    }
+
+                    // standard '2' no redirection, just part of args
+                    let Some(next_char) = chars.peek() else {
+                        new_token.push(ch);
+                        continue;
+                    };
+
+                    // standard '2' no redirection, just part of args
+                    if next_char != &'>' {
+                        new_token.push(ch);
+                        continue;
+                    }
+
+                    chars.next();
+
+                    result.push(Token::Node(crate::command::Command::from_string(
+                        new_token.trim(),
+                    )));
+
+                    result.push(Token::RedirectStderr);
+
+                    new_token.clear()
+                } else {
+                    new_token.push(ch);
+                }
+            }
             _ => new_token.push(ch),
         }
     }
@@ -115,7 +189,7 @@ pub fn tokenize(args: &str) -> Vec<Token> {
         };
 
         let token_to_add = match token {
-            Token::RedirectStdout | Token::RedirectStderr => {
+            Token::RedirectStdout | Token::RedirectStderr | Token::AppendStdout => {
                 Token::Path(new_token.trim().to_string())
             }
             _ => Token::Node(crate::command::Command::from_string(new_token.trim())),
@@ -229,6 +303,26 @@ mod tests {
         );
     }
 
+    #[test]
+    fn redirect_stdout_explicit_no_spaces() {
+        let tokens = tokenize("echo hello1>file.txt");
+        assert_eq!(
+            tokens,
+            vec![node("echo hello"), Token::RedirectStdout, path("file.txt")]
+        );
+    }
+    #[test]
+    fn no_redirect_when_1_not_followed_by_gt() {
+        let tokens = tokenize("echo hello 1 file.txt");
+        assert_eq!(tokens, vec![node("echo hello 1 file.txt")]);
+    }
+
+    #[test]
+    fn no_redirect_when_1_at_end() {
+        let tokens = tokenize("echo hello 1");
+        assert_eq!(tokens, vec![node("echo hello 1")]);
+    }
+
     // --- Redirect stderr ---
 
     #[test]
@@ -246,6 +340,55 @@ mod tests {
         assert_eq!(
             tokens,
             vec![node("echo hello"), Token::RedirectStderr, path("file.txt")]
+        );
+    }
+
+    #[test]
+    fn no_redirect_stderr_at_en() {
+        let tokens = tokenize("echo hello 2");
+        assert_eq!(tokens, vec![node("echo hello 2")]);
+    }
+
+    #[test]
+    fn no_redirect_when_2_not_followed_by_gt() {
+        let tokens = tokenize("echo hello 2 file.txt");
+        assert_eq!(tokens, vec![node("echo hello 2 file.txt")]);
+    }
+
+    // --- Append stdout ---
+    #[test]
+    fn append_stdout() {
+        let tokens = tokenize("echo hello >> file.txt");
+        assert_eq!(
+            tokens,
+            vec![node("echo hello"), Token::AppendStdout, path("file.txt")]
+        );
+    }
+
+    #[test]
+    fn append_stdout_no_spaces() {
+        let tokens = tokenize("echo hello>>file.txt");
+        assert_eq!(
+            tokens,
+            vec![node("echo hello"), Token::AppendStdout, path("file.txt")]
+        );
+    }
+
+    #[test]
+    fn append_stdout_number() {
+        let tokens = tokenize("echo hello 1>> file.txt");
+        assert_eq!(
+            tokens,
+            vec![node("echo hello"), Token::AppendStdout, path("file.txt")]
+        );
+    }
+
+    #[test]
+    fn append_stdout_number_no_spaces() {
+        let tokens = tokenize("echo hello1>>file.txt");
+        assert_eq!(
+            tokens,
+            vec![node("echo hello"), Token::AppendStdout, path("file.txt")]
         );
     }
 

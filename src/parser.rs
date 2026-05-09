@@ -41,6 +41,7 @@ pub enum Node {
     Pipe { left: Box<Node>, right: Box<Node> },
     RedirectStdout { source: Box<Node>, target: String },
     RedirectStderr { source: Box<Node>, target: String },
+    AppendStdout { source: Box<Node>, target: String },
 }
 
 pub fn build_ast(tokens: Vec<Token>) -> Result<Node, String> {
@@ -75,6 +76,15 @@ fn parse_operator(parser: &mut Parser) -> Result<Node, String> {
                 parser.move_next();
                 if let Some(Token::Path(path)) = parser.consume() {
                     head = Node::RedirectStderr {
+                        source: Box::new(head),
+                        target: path,
+                    };
+                }
+            }
+            Token::AppendStdout => {
+                parser.move_next();
+                if let Some(Token::Path(path)) = parser.consume() {
+                    head = Node::AppendStdout {
                         source: Box::new(head),
                         target: path,
                     };
