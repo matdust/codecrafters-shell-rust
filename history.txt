@@ -11,3 +11,6 @@ echo bar
 echo foo1
 echo foo2
 pwd
+ech
+echo
+ech

@@ -73,6 +73,7 @@ impl rustyline::completion::Completer for MyHelper {
         ]
         .into_iter()
         .filter(|cmd| cmd.starts_with(word))
+        .map(|c| format!("{} ", c))
         .collect();
 
         Ok((start, candidates))
