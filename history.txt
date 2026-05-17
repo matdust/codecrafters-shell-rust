@@ -20,3 +20,4 @@ ec
 echo hello
 nc localhost 7001 -v
 clear
+e

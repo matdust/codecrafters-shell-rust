@@ -9,8 +9,6 @@ mod utils;
 use rustyline::config::Configurer;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // println!("{:?}", utils::files::get_path_exec());
-    // return Ok(());
     let cfg = rustyline::Config::builder()
         .history_ignore_space(true)
         .history_ignore_dups(true)?
@@ -19,7 +17,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .color_mode(rustyline::ColorMode::Forced)
         .build();
 
-    let mut rl = rustyline::Editor::<crate::helper::MyHelper, _>::with_config(cfg)?;
+    let mut rl = rustyline::Editor::<crate::helper::CustomHelper, _>::with_config(cfg)?;
 
     if rl.load_history("history.txt").is_err() {
         println!("No previous history.");
@@ -28,7 +26,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     rl.set_auto_add_history(true);
     rl.set_completion_show_all_if_ambiguous(true);
     rl.set_history_ignore_dups(true)?;
-    rl.set_helper(Some(crate::helper::MyHelper));
+    rl.set_helper(Some(crate::helper::CustomHelper::default()));
+
     loop {
         let readline = rl.readline("$ ");
         match readline {
