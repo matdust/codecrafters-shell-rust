@@ -10,7 +10,17 @@ impl CustomHelper {
 impl Default for CustomHelper {
     fn default() -> Self {
         Self {
-            candidates: crate::utils::files::get_path_exec(),
+            candidates: [
+                vec![
+                    "echo".to_string(),
+                    "ls".to_string(),
+                    "cat".to_string(),
+                    "cd".to_string(),
+                    "exit".to_string(),
+                ],
+                crate::utils::files::get_path_exec(),
+            ]
+            .concat(),
         }
     }
 }
