@@ -1,12 +1,33 @@
+use std::cell::Cell;
+
 use rustyline::completion::Pair;
 
 pub struct CustomHelper {
     candidates: Vec<String>,
+    last_completion_pos: Cell<Option<usize>>,
 }
 
 impl CustomHelper {
     fn candidates(&self) -> &[String] {
         &self.candidates
+    }
+
+    pub(crate) fn longest_common_prefix(candidates: &[Pair]) -> String {
+        if candidates.is_empty() {
+            return String::new();
+        }
+        let first = &candidates[0].replacement;
+        let mut len = first.len();
+        for c in &candidates[1..] {
+            len = len.min(
+                first
+                    .chars()
+                    .zip(c.replacement.chars())
+                    .take_while(|(a, b)| a == b)
+                    .count(),
+            );
+        }
+        first[..len].to_string()
     }
 }
 impl Default for CustomHelper {
@@ -24,6 +45,7 @@ impl Default for CustomHelper {
 
         Self {
             candidates: path_candidates,
+            last_completion_pos: Cell::new(None),
         }
     }
 }
@@ -32,7 +54,6 @@ impl rustyline::Helper for CustomHelper {}
 
 impl rustyline::completion::Completer for CustomHelper {
     type Candidate = Pair;
-
     fn complete(
         &self,
         line: &str,
@@ -52,8 +73,31 @@ impl rustyline::completion::Completer for CustomHelper {
                 display: w.clone(),
                 replacement: w.clone(),
             })
-            .collect();
+            .collect::<Vec<Pair>>();
 
+        if r.is_empty() {
+            self.last_completion_pos.set(None);
+            return Ok((start_position, vec![]));
+        }
+
+        // Compute LCP of all candidates
+        let lcp = CustomHelper::longest_common_prefix(&r);
+
+        // If LCP advances beyond the current prefix — complete to LCP only, no list
+        if lcp.len() > prefix.len() {
+            self.last_completion_pos
+                .set(Some(start_position + lcp.len()));
+            return Ok((
+                start_position,
+                vec![Pair {
+                    display: lcp.clone(),
+                    replacement: lcp,
+                }],
+            ));
+        }
+
+        // LCP didn't advance — show the full list
+        self.last_completion_pos.set(None);
         Ok((start_position, r))
     }
 }
