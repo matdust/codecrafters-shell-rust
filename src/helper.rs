@@ -1,3 +1,5 @@
+use rustyline::completion::Pair;
+
 pub struct CustomHelper {
     candidates: Vec<String>,
 }
@@ -29,7 +31,7 @@ impl Default for CustomHelper {
 impl rustyline::Helper for CustomHelper {}
 
 impl rustyline::completion::Completer for CustomHelper {
-    type Candidate = String;
+    type Candidate = Pair;
 
     fn complete(
         &self,
@@ -38,15 +40,18 @@ impl rustyline::completion::Completer for CustomHelper {
         _ctx: &rustyline::Context<'_>,
     ) -> rustyline::Result<(usize, Vec<Self::Candidate>)> {
         let start_position = line[..pos].rfind(' ').map_or(0, |i| i + 1);
-        let word = &line[start_position..pos];
-        if word.is_empty() {
+        let prefix = &line[start_position..pos];
+        if prefix.is_empty() {
             return Ok((start_position, vec![]));
         }
         let r = self
             .candidates()
             .iter()
-            .filter(|cmd| cmd.starts_with(word))
-            .map(|c| format!("{} ", c))
+            .filter(|cmd| cmd.starts_with(prefix))
+            .map(|w| Pair {
+                display: w.clone(),
+                replacement: w.clone(),
+            })
             .collect();
 
         Ok((start_position, r))
