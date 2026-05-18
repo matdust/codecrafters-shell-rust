@@ -71,7 +71,7 @@ impl rustyline::completion::Completer for CustomHelper {
             .filter(|cmd| cmd.starts_with(prefix))
             .map(|w| Pair {
                 display: w.clone(),
-                replacement: w.clone(),
+                replacement: format!("{} ", w),
             })
             .collect::<Vec<Pair>>();
 
@@ -89,12 +89,11 @@ impl rustyline::completion::Completer for CustomHelper {
                 start_position,
                 vec![Pair {
                     display: lcp.clone(),
-                    replacement: format!("{lcp} "),
+                    replacement: lcp.clone(),
                 }],
             ));
         }
 
-        // LCP didn't advance — show the full list
         self.last_completion_pos.set(None);
         Ok((start_position, r))
     }
