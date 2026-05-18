@@ -9,18 +9,19 @@ impl CustomHelper {
 }
 impl Default for CustomHelper {
     fn default() -> Self {
+        let mut path_candidates = crate::utils::files::get_path_exec();
+        path_candidates.append(&mut vec![
+            "echo".to_string(),
+            "ls".to_string(),
+            "cat".to_string(),
+            "cd".to_string(),
+            "exit".to_string(),
+        ]);
+        path_candidates.sort_by_key(|a| a.to_lowercase());
+        path_candidates.dedup_by(|a, b| a.to_lowercase() == b.to_lowercase());
+
         Self {
-            candidates: [
-                vec![
-                    "echo".to_string(),
-                    "ls".to_string(),
-                    "cat".to_string(),
-                    "cd".to_string(),
-                    "exit".to_string(),
-                ],
-                crate::utils::files::get_path_exec(),
-            ]
-            .concat(),
+            candidates: path_candidates,
         }
     }
 }

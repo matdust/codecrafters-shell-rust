@@ -22,7 +22,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     if rl.load_history("history.txt").is_err() {
         println!("No previous history.");
     }
-    rl.set_completion_type(rustyline::CompletionType::Circular);
+    rl.set_completion_type(rustyline::CompletionType::List);
     rl.set_auto_add_history(true);
     rl.set_completion_show_all_if_ambiguous(true);
     rl.set_history_ignore_dups(true)?;
