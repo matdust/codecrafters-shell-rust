@@ -80,10 +80,8 @@ impl rustyline::completion::Completer for CustomHelper {
             return Ok((start_position, vec![]));
         }
 
-        // Compute LCP of all candidates
         let lcp = CustomHelper::longest_common_prefix(&r);
 
-        // If LCP advances beyond the current prefix — complete to LCP only, no list
         if lcp.len() > prefix.len() {
             self.last_completion_pos
                 .set(Some(start_position + lcp.len()));
@@ -91,7 +89,7 @@ impl rustyline::completion::Completer for CustomHelper {
                 start_position,
                 vec![Pair {
                     display: lcp.clone(),
-                    replacement: lcp,
+                    replacement: format!("{lcp} "),
                 }],
             ));
         }
